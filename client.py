@@ -4,6 +4,10 @@ import socket
 import time
 from common.variables import *
 from common.utils import get_message, send_message
+import logging
+import logs.client_log_config
+
+LOGGER = logging.getLogger('client')
 
 
 def create_presence(account_name='Guest'):
@@ -19,6 +23,7 @@ def create_presence(account_name='Guest'):
             ACCOUNT_NAME: account_name
         }
     }
+    LOGGER.debug(f'Сформировано {PRESENCE} сообщение')
     return out
 
 
@@ -26,9 +31,13 @@ def proccess_ans(message):
     """Функция разбирает ответ сервера"""
     if RESPONSE in message:
         if message[RESPONSE] == 200:
+            LOGGER.debug(f'Получен ответ от сервера {message}')
             return '200: OK'
+        LOGGER.debug(f'Получен ответ от сервера {message}')
         return f'400: {message[ERROR]}'
+    LOGGER.error(f'Ошибка полученного ответа от сервера {message}')
     raise ValueError
+
 
 
 def main():
@@ -37,13 +46,16 @@ def main():
         server_address = sys.argv[1]
         server_port = int(sys.argv[2])
         if server_port < 1024 or server_port > 65535:
+            LOGGER.error(f'Ошибка подключения к серверу')
             raise ValueError
     except IndexError:
         server_address = DEFAULT_IP_ADDRESS
         server_port = DEFAULT_PORT
+        LOGGER.debug(f'Выбраны порт и ip по умолчанию {server_address}:'
+                     f'{server_port}')
     except ValueError:
-        print('В качестве порта может быть указано только число в диапазоне '
-              'от 1024 до 65535')
+        LOGGER.error('В качестве порта может быть указано только число в '
+                     'диапазоне от 1024 до 65535')
         sys.exit(1)
 
     # Инициализация сокета и обмен
@@ -54,9 +66,9 @@ def main():
     send_message(transport, message_to_server)
     try:
         answer = proccess_ans(get_message(transport))
-        print(answer)
+        LOGGER.info(f'получен ответ {answer}')
     except (ValueError, json.JSONDecodeError):
-        print('Не удалось декодировать сообщение сервера')
+        LOGGER.error('Не удалось декодировать сообщение сервера')
 
 
 if __name__ == '__main__':

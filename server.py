@@ -3,6 +3,10 @@ import sys
 import json
 from common.variables import *
 from common.utils import get_message, send_message
+import logging
+import logs.server_log_config
+
+LOGGER = logging.getLogger('server')
 
 
 def process_client_message(message):
@@ -15,7 +19,9 @@ def process_client_message(message):
     """
     if ACTION in message and message[ACTION] == PRESENCE and TIME in message \
             and USER in message and message[USER][ACCOUNT_NAME] == 'Guest':
+        LOGGER.debug(f'Получен верный {PRESENCE} от клиента')
         return {RESPONSE: 200}
+    LOGGER.debug(f'Получен неверный {PRESENCE} от клиента: {message}')
     return {
         RESPONSE: 400,
         ERROR: 'Bad Request'
@@ -66,12 +72,12 @@ def main():
         client, client_address = transport.accept()
         try:
             message_from_client = get_message(client)
-            print(message_from_client)
+            LOGGER.debug(f'сообщение от клиента: {message_from_client}')
             response = process_client_message(message_from_client)
             send_message(client, response)
             client.close()
         except (ValueError, json.JSONDecodeError):
-            print('Принято некорректное сообщение от клиента.')
+            LOGGER.error('Принято некорректное сообщение от клиента.')
             client.close()
 
 
