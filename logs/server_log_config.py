@@ -17,7 +17,8 @@ PATH = os.path.join(PATH, 'server.log')
 STREAM_HANDLER = logging.StreamHandler(sys.stderr)
 STREAM_HANDLER.setFormatter(SERVER_FORMATTER)
 STREAM_HANDLER.setLevel(logging.ERROR)
-LOG_FILE = logging.handlers.TimedRotatingFileHandler(PATH, encoding='utf8')
+LOG_FILE = logging.handlers.TimedRotatingFileHandler(PATH, encoding='utf8',
+                                                     interval=1, when='D')
 LOG_FILE.setFormatter(SERVER_FORMATTER)
 
 # создаём регистратор и настриваем его
