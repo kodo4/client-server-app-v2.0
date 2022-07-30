@@ -6,10 +6,12 @@ from common.variables import *
 from common.utils import get_message, send_message
 import logging
 import logs.client_log_config
+from decos import log
 
 LOGGER = logging.getLogger('client')
 
 
+@log
 def create_presence(account_name='Guest'):
     """
     Функция генерирует запрос о присутствии клиента
@@ -27,7 +29,8 @@ def create_presence(account_name='Guest'):
     return out
 
 
-def proccess_ans(message):
+@log
+def process_ans(message):
     """Функция разбирает ответ сервера"""
     if RESPONSE in message:
         if message[RESPONSE] == 200:
@@ -37,7 +40,6 @@ def proccess_ans(message):
         return f'400: {message[ERROR]}'
     LOGGER.error(f'Ошибка полученного ответа от сервера {message}')
     raise ValueError
-
 
 
 def main():
@@ -65,7 +67,7 @@ def main():
     message_to_server = create_presence()
     send_message(transport, message_to_server)
     try:
-        answer = proccess_ans(get_message(transport))
+        answer = process_ans(get_message(transport))
         LOGGER.info(f'получен ответ {answer}')
     except (ValueError, json.JSONDecodeError):
         LOGGER.error('Не удалось декодировать сообщение сервера')

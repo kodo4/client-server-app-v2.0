@@ -5,10 +5,12 @@ from common.variables import *
 from common.utils import get_message, send_message
 import logging
 import logs.server_log_config
+from decos import log
 
 LOGGER = logging.getLogger('server')
 
 
+@log
 def process_client_message(message):
     """
     Обработчик сообщений от клиентов, принимает словарь -
