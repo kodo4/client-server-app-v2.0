@@ -31,6 +31,10 @@ def host_range_ping(ip, amount):
 def host_range_ping_tab():
     ip = input('Введите первоночальный адрес: ')
     amount = int(input('Сколько адресов проверяем? '))
+    if amount > 256:
+        while amount > 256:
+            print('Нельзя проверить больше 256 адресов')
+            amount = int(input('Сколько адресов проверяем? '))
     host_range_ping(ip, amount)
     print('Началась проверка ip адрессов.')
     for i in range(5, 0, -1):
