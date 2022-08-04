@@ -20,6 +20,9 @@ ACTION = 'action'
 TIME = 'time'
 USER = 'user'
 ACCOUNT_NAME = 'account_name'
+MESSAGE = 'message'
+SENDER = 'sender'
+MESSAGE_TEXT = 'message_text'
 
 # Прочие ключи, используемые в протоколе
 PRESENCE = 'presence'
