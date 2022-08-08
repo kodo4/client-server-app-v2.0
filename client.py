@@ -4,6 +4,7 @@ import json
 import socket
 import time
 import threading
+from metaclass import ClientVerify
 from common.variables import *
 from common.utils import get_message, send_message
 import logging
@@ -13,7 +14,7 @@ from decos import log
 LOGGER = logging.getLogger('client')
 
 
-class ClientSender(threading.Thread):
+class ClientSender(threading.Thread, metaclass=ClientVerify):
     def __init__(self, account_name, sock):
         self.account_name = account_name
         self.sock = sock
@@ -78,7 +79,7 @@ class ClientSender(threading.Thread):
         print('exit - выход из программы')
 
 
-class ClientReader(threading.Thread):
+class ClientReader(threading.Thread, metaclass=ClientVerify):
     def __init__(self, account_name, sock):
         self.account_name = account_name
         self.sock = sock

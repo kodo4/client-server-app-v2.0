@@ -5,6 +5,8 @@ import sys
 import json
 import time
 
+from descriptors import VerifyPort
+from metaclass import ServerVerifier
 from common.variables import *
 from common.utils import get_message, send_message
 import logging
@@ -23,17 +25,12 @@ def arg_parser():
     listen_address = namespace.a
     listen_port = namespace.p
 
-    if not 1023 < listen_port < 65536:
-        LOGGER.critical(
-            f'Попытка запуска сервера с указанием неподходящего порта '
-            f'{listen_port}. Допустимы адреса с 1024 до 65535'
-        )
-        sys.exit(1)
-
     return listen_address, listen_port
 
 
-class Server:
+class Server(metaclass=ServerVerifier):
+    port = VerifyPort()
+
     def __init__(self, listen_address, listen_port):
         self.addr = listen_address
         self.port = listen_port
