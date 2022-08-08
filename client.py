@@ -13,86 +13,101 @@ from decos import log
 LOGGER = logging.getLogger('client')
 
 
-@log
-def create_exit_message(account_name):
-    """Функция создаёт словарь с сообщение о выходе"""
-    return {
-        ACTION: EXIT,
-        TIME: time.time(),
-        ACCOUNT_NAME: account_name
-    }
+class ClientSender(threading.Thread):
+    def __init__(self, account_name, sock):
+        self.account_name = account_name
+        self.sock = sock
+        super().__init__()
 
+    # функция создаёт словарь с сообщением о выходе.
+    def create_exit_message(self):
+        return {
+            ACTION: EXIT,
+            TIME: time.time(),
+            ACCOUNT_NAME: self.account_name
+        }
 
-@log
-def message_from_server(sock, my_username):
-    """Функция обработчик сообщений поступающих с сервера"""
-    while True:
+    # Функция запрашиваем кому отправить сообщение и само сообщение,
+    # отправляет полученные данные на сервер
+    def create_message(self):
+        """Функция запрашивает текст сообщения и возвращает его.
+        Так же завершает работу при вводе подобной комманды"""
+        to_user = input('Введите получателя сообщения: ')
+        message = input('Введите сообщение для отправки: ')
+        message_dict = {
+            ACTION: MESSAGE,
+            SENDER: self.account_name,
+            DESTINATION: to_user,
+            TIME: time.time(),
+            MESSAGE_TEXT: message
+        }
+        LOGGER.debug(f'Сформирован словарь сообщения: {message_dict}')
         try:
-            message = get_message(sock)
-            if ACTION in message and message[ACTION] == MESSAGE and \
-                    SENDER in message and DESTINATION in message\
-                    and MESSAGE_TEXT in message and message[DESTINATION] == \
-                    my_username:
-                print(f'Получено сообщение от пользователя '
-                      f'{message[SENDER]}: \n{message[MESSAGE_TEXT]}')
-                LOGGER.info(f'Получено сообщение от пользователя '
-                      f'{message[SENDER]}: \n{message[MESSAGE_TEXT]}')
+            send_message(self.sock, message_dict)
+            LOGGER.info(f'Отправлено сообщение для пользователя {to_user}')
+        except Exception as e:
+            print(e)
+            LOGGER.critical('Потеряно соединение с сервером.')
+            exit(1)
+
+    def run(self):
+        """Функция взаимодействия с пользователем, запрашивает команды, отправляет
+        сообщения"""
+        self.print_help()
+        while True:
+            command = input('Введите команду: ')
+            if command == 'message':
+                self.create_message()
+            elif command == 'help':
+                self.print_help()
+            elif command == 'exit':
+                send_message(self.sock, self.create_exit_message())
+                print('Завершение соединения.')
+                LOGGER.info('Завершения работы по команде пользователя')
+                # Задержка необходима, чтобы успело уйти сообщение о выходе
+                time.sleep(0.5)
+                break
             else:
-                LOGGER.error(f'Получено некорректное сообщение с сервера: '
-                             f'{message}')
-        except (OSError, ConnectionError, ConnectionAbortedError,
-                ConnectionResetError, json.JSONDecodeError):
-            LOGGER.critical(f'Потеряно соединение с сервером')
-            break
+                print('Команда не распознана, попробуйте снова.')
+
+    def print_help(self):
+        """Функция вывода справочной информации"""
+        print('Поддерживаемые команды:')
+        print('message - отправить сообщение. Кому и текст будет запрошены отдельно.')
+        print('help - вывести подсказки по командам')
+        print('exit - выход из программы')
+
+
+class ClientReader(threading.Thread):
+    def __init__(self, account_name, sock):
+        self.account_name = account_name
+        self.sock = sock
+        super().__init__()
+
+    def run(self):
+        """Функция обработчик сообщений поступающих с сервера"""
+        while True:
+            try:
+                message = get_message(self.sock)
+                if ACTION in message and message[ACTION] == MESSAGE and \
+                        SENDER in message and DESTINATION in message \
+                        and MESSAGE_TEXT in message and \
+                        message[DESTINATION] == self.account_name:
+                    print(f'Получено сообщение от пользователя '
+                          f'{message[SENDER]}: \n{message[MESSAGE_TEXT]}')
+                    LOGGER.info(f'Получено сообщение от пользователя '
+                                f'{message[SENDER]}: \n{message[MESSAGE_TEXT]}')
+                else:
+                    LOGGER.error(f'Получено некорректное сообщение с сервера: '
+                                 f'{message}')
+            except (OSError, ConnectionError, ConnectionAbortedError,
+                    ConnectionResetError, json.JSONDecodeError):
+                LOGGER.critical(f'Потеряно соединение с сервером')
+                break
 
 
 @log
-def create_message(sock, account_name='Guest'):
-    """Функция запрашивает текст сообщения и возвращает его.
-    Так же завершает работу при вводе подобной комманды"""
-    to_user = input('Введите получателя сообщения: ')
-    message = input('Введите сообщение для отправки: ')
-    message_dict = {
-        ACTION: MESSAGE,
-        SENDER: account_name,
-        DESTINATION: to_user,
-        TIME: time.time(),
-        MESSAGE_TEXT: message
-    }
-    LOGGER.debug(f'Сформирован словарь сообщения: {message_dict}')
-    try:
-        send_message(sock, message_dict)
-        LOGGER.info(f'Отправлено сообщение для пользователя {to_user}')
-    except Exception as e:
-        print(e)
-        LOGGER.critical('Потеряно соединение с сервером.')
-        sys.exit(1)
-
-
-@log
-def user_interective(sock, username):
-    """Функция взаимодействия с пользователем, запрашивает команды, отправляет
-    сообщения"""
-    print_help()
-    while True:
-        command = input('Введите команду: ')
-        if command == 'message':
-            create_message(sock, username)
-        elif command == 'help':
-            print_help()
-        elif command == 'exit':
-            send_message(sock, create_exit_message(username))
-            print('Завершение соединения.')
-            LOGGER.info('Завершения работы по команде пользователя')
-            # Задержка необходима, чтобы успело уйти сообщение о выходе
-            time.sleep(0.5)
-            break
-        else:
-            print('Команда не распознана, попробуйте снова.')
-
-
-@log
-def create_presence(account_name='Guest'):
+def create_presence(account_name):
     """
     Функция генерирует запрос о присутствии клиента
     :param account_name:
@@ -108,14 +123,6 @@ def create_presence(account_name='Guest'):
     LOGGER.debug(f'Сформировано {PRESENCE} сообщение для пользователя '
                  f'{account_name}')
     return out
-
-
-def print_help():
-    """Функция вывода справочной информации"""
-    print('Поддерживаемые команды:')
-    print('message - отправить сообщение. Кому и текст будет запрошены отдельно.')
-    print('help - вывести подсказки по командам')
-    print('exit - выход из программы')
 
 
 @log
@@ -182,16 +189,15 @@ def main():
     else:
         # Если соединение с сервером установлено корректно,
         # запускаем клиентский процесс приёма сообщений
-        receiver = threading.Thread(target=message_from_server,
-                                    args=(transport, client_name))
+        receiver = ClientReader(client_name, transport)
         receiver.daemon = True
         receiver.start()
 
         # затем запускаем отправку сообщений и взимодействия с пользовтелем
-        user_interface = threading.Thread(target=user_interective, args=(
-            transport, client_name))
+        user_interface = ClientSender(client_name, transport)
         user_interface.daemon = True
         user_interface.start()
+
         LOGGER.info('Запущены процессы')
         # основной цикл, если один из потоков завершён,
         # то значит или потеряно соединение или пользователь
