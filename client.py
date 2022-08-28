@@ -66,7 +66,7 @@ class ClientSender(threading.Thread, metaclass=ClientVerify):
                 print('Завершение соединения.')
                 LOGGER.info('Завершения работы по команде пользователя')
                 # Задержка необходима, чтобы успело уйти сообщение о выходе
-                time.sleep(0.5)
+                time.sleep(1)
                 break
             else:
                 print('Команда не распознана, попробуйте снова.')
