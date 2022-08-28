@@ -14,9 +14,16 @@ MAX_PACKAGE_LENGTH = 1024
 ENCODING = 'utf-8'
 # Уровень логирования
 LOGGING_LEVEL = logging.DEBUG
+# База данных для хранения данных сервера:
+SERVER_CONFIG = 'server_dist.ini'
 
 # Протокол JIM основные ключи:
 ACTION = 'action'
+GET_CONTACTS = 'get_contacts'
+LIST_INFO = 'data_list'
+REMOVE_CONTACT = 'remove'
+ADD_CONTACT = 'add'
+USERS_REQUEST = 'get_users'
 TIME = 'time'
 USER = 'user'
 ACCOUNT_NAME = 'account_name'
@@ -28,6 +35,9 @@ DESTINATION = 'to'
 RESPONSE = 'response'
 ERROR = 'error'
 RESPONSE_200 = {RESPONSE: 200}
+RESPONSE_202 = {RESPONSE: 202,
+                LIST_INFO: None}
+
 RESPONSE_400 = {
     RESPONSE: 400,
     ERROR: None
