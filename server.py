@@ -66,6 +66,7 @@ class Server(threading.Thread, metaclass=ServerVerifier):
         self.sock.listen()
 
     def run(self):
+        global new_connection
         self.init_socket()
 
         while True:
@@ -107,6 +108,8 @@ class Server(threading.Thread, metaclass=ServerVerifier):
                                 del self.names[name]
                                 break
                         self.clients.remove(client_with_message)
+                        with conflag_lock:
+                            new_connection = True
 
             for i in self.messages:
                 try:
@@ -117,6 +120,8 @@ class Server(threading.Thread, metaclass=ServerVerifier):
                     self.clients.remove(self.names[i[DESTINATION]])
                     self.database.user_logout(i[DESTINATION])
                     del self.names[i[DESTINATION]]
+                    with conflag_lock:
+                        new_connection = True
             self.messages.clear()
 
     def process_message(self, message, listen_socks):
@@ -169,9 +174,15 @@ class Server(threading.Thread, metaclass=ServerVerifier):
                 DESTINATION in message and TIME in message \
                 and SENDER in message and MESSAGE_TEXT in message and \
                 self.names[message[SENDER]] == client:
-            self.messages.append(message)
-            self.database.process_message(message[SENDER],
-                                          message[DESTINATION])
+            if message[DESTINATION] in self.names:
+                self.messages.append(message)
+                self.database.process_message(message[SENDER],
+                                              message[DESTINATION])
+                send_message(client, RESPONSE_200)
+            else:
+                response = RESPONSE_400
+                response[ERROR] = 'Пользователь не в сети'
+                send_message(client, response)
             return
 
         elif ACTION in message and message[ACTION] == EXIT and ACCOUNT_NAME in \
