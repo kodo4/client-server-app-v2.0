@@ -34,6 +34,8 @@ EXIT = 'exit'
 DESTINATION = 'to'
 RESPONSE = 'response'
 ERROR = 'error'
+DATA = 'bin'
+PUBLIC_KEY = 'pubkey'
 RESPONSE_200 = {RESPONSE: 200}
 RESPONSE_202 = {RESPONSE: 202,
                 LIST_INFO: None}
@@ -43,7 +45,17 @@ RESPONSE_400 = {
     ERROR: None
 }
 
+RESPONSE_511 = {
+    RESPONSE: 511,
+    DATA: None
+}
+
+RESPONSE_205 = {
+    RESPONSE: 205
+}
+
 # Прочие ключи, используемые в протоколе
 PRESENCE = 'presence'
 RESPONSE = 'response'
 ERROR = 'error'
+PUBLIC_KEY_REQUEST = 'pubkey_need'
