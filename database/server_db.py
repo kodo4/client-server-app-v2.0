@@ -1,7 +1,6 @@
 from datetime import datetime
-import pprint
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, \
-    create_engine
+    create_engine, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -14,10 +13,14 @@ class ServerStorage:
         id = Column(Integer, primary_key=True)
         login = Column(String, unique=True)
         last_connect = Column(DateTime)
+        passwd_hash = Column(String)
+        pubkey = Column(Text)
         
-        def __init__(self, login):
+        def __init__(self, login, passwd_hash):
             self.login = login
             self.last_connect = datetime.now()
+            self.passwd_hash = passwd_hash
+            self.pubkey = None
     
     class ActiveUsers(Base):
         __tablename__ = 'active_users'
@@ -81,18 +84,21 @@ class ServerStorage:
         self.session.query(self.ActiveUsers).delete()
         self.session.commit()
         
-    def user_login(self, username, ip_addr, port):
+    def user_login(self, username, ip_addr, port, key):
         result = self.session.query(self.AllUsers).filter_by(login=username)
         
         if result.count():
             user = result.first()
             user.last_connect = datetime.now()
+            if user.pubkey != key:
+                user.pubkey = key
         else:
-            user = self.AllUsers(username)
-            self.session.add(user)
-            self.session.commit()
-            user_in_history = self.UsersHistory(user.id)
-            self.session.add(user_in_history)
+            raise ValueError('Пользователь не зарегистрирован.')
+            # user = self.AllUsers(username)
+            # self.session.add(user)
+            # self.session.commit()
+            # user_in_history = self.UsersHistory(user.id)
+            # self.session.add(user_in_history)
 
         new_active_user = self.ActiveUsers(user.id, ip_addr, port, 
                                            datetime.now())
@@ -102,6 +108,44 @@ class ServerStorage:
         self.session.add(history)
         
         self.session.commit()
+
+    def add_user(self, name, passwd_hash):
+        """Регистрация нового пользователя"""
+        user_row = self.AllUsers(name, passwd_hash)
+        self.session.add(user_row)
+        self.session.commit()
+        history_row = self.UsersHistory(user_row.id)
+        self.session.add(history_row)
+        self.session.commit()
+
+    def remove_user(self, name):
+        """Удаления пользователя из БД"""
+        user = self.session.query(self.AllUsers).filter_by(login=name).first()
+        self.session.query(self.ActiveUsers).filter_by(user=user.id).delete()
+        self.session.query(self.LoginHistory).filter_by(user=user.id).delete()
+        self.session.query(self.UsersContacts).filter_by(user=user.id).delete()
+        self.session.query(
+            self.UsersContacts).filter_by(contact=user.id).delete()
+        self.session.query(self.UsersHistory).filter_by(user=user.id).delete()
+        self.session.query(self.AllUsers).filter_by(login=name).delete()
+        self.session.commit()
+
+    def get_hash(self, name):
+        """Получение хэша пароля"""
+        user = self.session.query(self.AllUsers).filter_by(login=name).first()
+        return user.passwd_hash
+
+    def get_pubkey(self, name):
+        """Получение публичного ключа"""
+        user = self.session.query(self.AllUsers).filter_by(login=name).first()
+        return user.pubkey
+
+    def check_user(self, name):
+        """Проверка существования пользователя в БД"""
+        if self.session.query(self.AllUsers).filter_by(login=name).count():
+            return True
+        else:
+            return False
     
     def user_logout(self, username):
         user = self.session.query(self.AllUsers).\
@@ -197,6 +241,7 @@ class ServerStorage:
 
 
 if __name__ == '__main__':
+    pass
     # db = ServerStorage()
     # db.user_login('client_1', '192.168.1.4', 8888)
     # db.user_login('client_2', '192.168.1.5', 7777)
@@ -214,18 +259,18 @@ if __name__ == '__main__':
     # print(db.users_list())
 
 
-    test_db = ServerStorage('server_base.db3')
-    test_db.user_login('client_3', '192.168.1.4', 7878)
-    test_db.user_login('client_4', '192.168.1.5', 7779)
-    test_db.user_login('1111', '192.168.1.113', 8080)
-    test_db.user_login('McG2', '192.168.1.113', 8081)
-    # print(test_db.users_list())
-    # print(test_db.active_users_list())
-    test_db.user_logout('McG2')
-    # print(test_db.login_history('re'))
-    test_db.add_contact('client_2', 'client_1')
-    test_db.add_contact('client_1', 'client_2')
-    test_db.add_contact('McG2', '1111')
-    test_db.remove_contact('client_2', 'client_1')
-    test_db.process_message('client_3', 'client_4')
-    # print(test_db.message_history())
+    # test_db = ServerStorage('server_base.db3')
+    # test_db.user_login('client_3', '192.168.1.4', 7878)
+    # test_db.user_login('client_4', '192.168.1.5', 7779)
+    # test_db.user_login('1111', '192.168.1.113', 8080)
+    # test_db.user_login('McG2', '192.168.1.113', 8081)
+    # # print(test_db.users_list())
+    # # print(test_db.active_users_list())
+    # test_db.user_logout('McG2')
+    # # print(test_db.login_history('re'))
+    # test_db.add_contact('client_2', 'client_1')
+    # test_db.add_contact('client_1', 'client_2')
+    # test_db.add_contact('McG2', '1111')
+    # test_db.remove_contact('client_2', 'client_1')
+    # test_db.process_message('client_3', 'client_4')
+    # # print(test_db.message_history())
