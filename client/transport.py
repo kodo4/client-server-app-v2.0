@@ -6,22 +6,24 @@ import json
 import socket
 import time
 import threading
+import logging
 
-from common.errors import ServerError
+from PyQt5.QtCore import pyqtSignal, QObject
 
 sys.path.append(('../'))
-from PyQt5.QtCore import pyqtSignal, QObject
+from common.errors import ServerError
 from common.variables import *
 from common.utils import get_message, send_message
-import logging
 
 
 LOGGER = logging.getLogger('client')
 sock_lock = threading.Lock()
 
 
-# Тарнспорт отвечающий за взаимодействие клиента и сервера
 class ClientTransport(threading.Thread, QObject):
+    """Тарнспорт отвечающий за взаимодействие
+    клиента и сервера
+    """
     # Сигнал нового сообщения и потери соедининения
     new_message = pyqtSignal(dict)
     message_205 = pyqtSignal()
@@ -54,6 +56,7 @@ class ClientTransport(threading.Thread, QObject):
         self.running = True
 
     def connection_init(self, port, ip):
+        """установка соединения с сервером"""
         self.transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.transport.settimeout(5)
 
@@ -162,6 +165,7 @@ class ClientTransport(threading.Thread, QObject):
             LOGGER.error('Не удалось обновить список контактов.')
 
     def user_list_update(self):
+        """Обновление с сервера списка пользователей"""
         LOGGER.debug(f'Запрос списка известных пользователей {self.username}')
         req = {
             ACTION: USERS_REQUEST,
@@ -193,6 +197,7 @@ class ClientTransport(threading.Thread, QObject):
             LOGGER.error(f'Не удалось получить ключ пользователя {user}')
 
     def add_contact(self, contact):
+        """уведомление для сервера о добавлении контакта"""
         LOGGER.debug(f'Создание контакта {contact}')
         req = {
             ACTION: ADD_CONTACT,
@@ -205,6 +210,7 @@ class ClientTransport(threading.Thread, QObject):
             self.process_ans(get_message(self.transport))
 
     def remove_contact(self, contact):
+        """уведомление удаления контакта из списка"""
         LOGGER.debug(f'Удаление контакта {contact}')
         req = {
             ACTION: REMOVE_CONTACT,
@@ -217,6 +223,7 @@ class ClientTransport(threading.Thread, QObject):
             self.process_ans(get_message(self.transport))
 
     def transport_shutdown(self):
+        """Уведомление для сервера о завершении работы клиента"""
         self.running = False
         message = {
             ACTION: EXIT,
@@ -232,6 +239,7 @@ class ClientTransport(threading.Thread, QObject):
         time.sleep(0.5)
 
     def send_message(self, to, message):
+        """Отправка сообщений на сервер для пользователя"""
         message_dict = {
             ACTION: MESSAGE,
             SENDER: self.username,
@@ -248,6 +256,7 @@ class ClientTransport(threading.Thread, QObject):
             LOGGER.info(f'Отправлено сообщение для пользователя {to}')
 
     def run(self):
+        """Основной цикл работы транспортного потока"""
         LOGGER.debug('Запущен процесс - приёмник сообщений с сервера')
         while self.running:
             time.sleep(1)

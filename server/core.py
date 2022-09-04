@@ -4,11 +4,11 @@ import select
 import socket
 import threading
 import hmac
+import logging
 
 from descriptors import VerifyPort
 from common.variables import *
 from common.utils import get_message, send_message
-import logging
 from decos import login_required
 
 LOGGER = logging.getLogger('server')

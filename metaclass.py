@@ -1,7 +1,5 @@
 import dis
 
-import pprint
-
 
 class ServerVerifier(type):
     def __init__(cls, clsname, bases, clsdict):

@@ -1,10 +1,6 @@
 import argparse
 import os.path
 import sys
-import json
-import socket
-import time
-import threading
 from Crypto.PublicKey import RSA
 from client.transport import ClientTransport
 from client.main_window import ClientWindow
